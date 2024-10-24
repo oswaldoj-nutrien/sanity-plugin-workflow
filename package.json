@@ -1,5 +1,5 @@
 {
-  "name": "sanity-plugin-workflow",
+  "name": "@oswaldoj-nutrien/sanity-plugin-workflow",
   "version": "1.0.4",
   "description": "A demonstration of a custom content publishing workflow using Sanity.",
   "keywords": [
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:sanity-io/sanity-plugin-workflow.git"
+    "url": "git+ssh://git@github.com/sanity-io/sanity-plugin-workflow.git"
   },
   "license": "MIT",
   "author": "Sanity.io <hello@sanity.io>",
@@ -57,7 +57,7 @@
     "groq": "^3.3.1",
     "lexorank": "^1.0.5",
     "react-fast-compare": "^3.2.1",
-    "sanity-plugin-utils": "^1.6.2"
+    "sanity-plugin-utils": "^1.6.6"
   },
   "devDependencies": {
     "@commitlint/cli": "^17.4.4",
@@ -101,7 +101,11 @@
   },
   "sanityPlugin": {
     "verifyPackage": {
-      "eslintImports": false
+      "eslintImports": false,
+      "tsc": false
     }
+  },
+  "directories": {
+    "lib": "lib"
   }
 }

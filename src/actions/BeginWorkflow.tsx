@@ -2,10 +2,11 @@ import {SplitVerticalIcon} from '@sanity/icons'
 import {useToast} from '@sanity/ui'
 import {LexoRank} from 'lexorank'
 import {useCallback, useState} from 'react'
-import {DocumentActionProps, useClient} from 'sanity'
+import {DocumentActionProps, useClient, useCurrentUser} from 'sanity'
 
 import {useWorkflowContext} from '../components/WorkflowContext'
 import {API_VERSION} from '../constants'
+import sendGridMailer from '../utils/sendGridMailer'
 
 export function BeginWorkflow(props: DocumentActionProps) {
   const {id, draft} = props
@@ -14,6 +15,7 @@ export function BeginWorkflow(props: DocumentActionProps) {
   const toast = useToast()
   const [beginning, setBeginning] = useState(false)
   const [complete, setComplete] = useState(false)
+  const currentUser = useCurrentUser()
 
   if (error) {
     console.error(error)
@@ -42,6 +44,12 @@ export function BeginWorkflow(props: DocumentActionProps) {
           description: `Document is now "${states[0].title}"`,
         })
         setBeginning(false)
+        // Send email here
+        sendGridMailer.sendWorkflowCreatedEmail({
+          currentUser,
+          documentTitle: draft?.title as string,
+        })
+
         // Optimistically remove action
         setComplete(true)
       })

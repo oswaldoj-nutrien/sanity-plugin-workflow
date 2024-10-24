@@ -1,10 +1,11 @@
-import React from 'react'
 import {useToast} from '@sanity/ui'
-import {UserSelectMenu} from 'sanity-plugin-utils'
+import React from 'react'
 import {useClient} from 'sanity'
+import {UserSelectMenu} from 'sanity-plugin-utils'
 
-import {User} from '../types'
 import {API_VERSION} from '../constants'
+import {User} from '../types'
+import sendGridMailer from '../utils/sendGridMailer'
 
 type UserAssignmentProps = {
   userList: User[]
@@ -34,6 +35,11 @@ export default function UserAssignment(props: UserAssignmentProps) {
         .insert(`after`, `assignees[-1]`, [userId])
         .commit()
         .then(() => {
+          sendGridMailer.sendUserAssignedEmail({
+            name: user.displayName,
+            email: user.email,
+            documentId,
+          })
           return toast.push({
             title: `Added ${user.displayName} to assignees`,
             status: 'success',

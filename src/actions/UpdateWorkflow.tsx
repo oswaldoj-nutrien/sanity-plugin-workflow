@@ -2,11 +2,13 @@ import {ArrowLeftIcon, ArrowRightIcon} from '@sanity/icons'
 import {useToast} from '@sanity/ui'
 import {useCurrentUser, useValidationStatus} from 'sanity'
 import {DocumentActionProps, useClient} from 'sanity'
+import {useProjectUsers, UserExtended} from 'sanity-plugin-utils'
 
 import {useWorkflowContext} from '../components/WorkflowContext'
 import {API_VERSION} from '../constants'
 import {arraysContainMatchingString} from '../helpers/arraysContainMatchingString'
 import {State} from '../types'
+import sendGridMailer from '../utils/sendGridMailer'
 
 // eslint-disable-next-line complexity
 export function UpdateWorkflow(props: DocumentActionProps, actionState: State) {
@@ -17,9 +19,20 @@ export function UpdateWorkflow(props: DocumentActionProps, actionState: State) {
   const toast = useToast()
   const currentUser = useCurrentUser()
 
+  const usersList = useProjectUsers({apiVersion: API_VERSION})
   const {metadata, loading, error, states} = useWorkflowContext(id)
   const currentState = states.find((s) => s.id === metadata?.state)
   const {assignees = []} = metadata ?? {}
+
+  let assigneesList: (UserExtended | undefined)[] = []
+  const hasAssignees = assignees && assignees.length > 0
+
+  if (hasAssignees) {
+    assigneesList = assignees.map((a) => {
+      const userData = usersList.find((u) => u.id === a)
+      return userData
+    })
+  }
 
   // TODO: Shouldn't the document action props contain this?
   const {validation, isValidating} = useValidationStatus(id, type)
@@ -40,6 +53,13 @@ export function UpdateWorkflow(props: DocumentActionProps, actionState: State) {
       .commit()
       .then(() => {
         props.onComplete()
+        if (hasAssignees) {
+          sendGridMailer.sendWorkflowUpdatedEmail({
+            assigneesMeta: assigneesList,
+            state: newState.title,
+            documentId,
+          })
+        }
         toast.push({
           status: 'success',
           title: `Document state now "${newState.title}"`,

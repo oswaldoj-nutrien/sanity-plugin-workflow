@@ -222,10 +222,11 @@ export default function WorkflowTool(props: WorkflowToolProps) {
         status: 'info',
         title: 'Updating document state...',
       })
-      await move(draggableId, destination, states, newOrder)
+
+      await move(draggableId, destination, states, newOrder, userList)
       setPatchingIds((ids: string[]) => ids.filter((id) => id !== draggableId))
     },
-    [data, patchingIds, toast, move, states]
+    [data, patchingIds, toast, move, states, userList]
   )
 
   // Used for the user filter UI

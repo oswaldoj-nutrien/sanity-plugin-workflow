@@ -3,10 +3,11 @@ import {useToast} from '@sanity/ui'
 import groq from 'groq'
 import React from 'react'
 import {useClient} from 'sanity'
-import {useListeningQuery} from 'sanity-plugin-utils'
+import {useListeningQuery, UserExtended} from 'sanity-plugin-utils'
 
 import {API_VERSION} from '../constants'
 import {SanityDocumentWithMetadata, State} from '../types'
+import sendGridMailer from '../utils/sendGridMailer'
 
 const QUERY = groq`*[_type == "workflow.metadata"]|order(orderRank){
   "_metadata": {
@@ -40,7 +41,8 @@ type WorkflowDocuments = {
       draggedId: string,
       destination: DraggableLocation,
       states: State[],
-      newOrder: string
+      newOrder: string,
+      usersList: UserExtended[]
     ) => void
   }
 }
@@ -72,7 +74,8 @@ export function useWorkflowDocuments(schemaTypes: string[]): WorkflowDocuments {
       draggedId: string,
       destination: DraggableLocation,
       states: State[],
-      newOrder: string
+      newOrder: string,
+      usersList: UserExtended[]
     ) => {
       // Optimistic update
       const currentLocalData = localDocuments
@@ -125,7 +128,17 @@ export function useWorkflowDocuments(schemaTypes: string[]): WorkflowDocuments {
       const {_id, _type} = document
 
       // Metadata + useDocumentOperation always uses Published id
-      const {documentId, _rev} = document._metadata || {}
+      const {documentId, _rev, assignees} = document._metadata || {}
+
+      let assigneesList: (UserExtended | undefined)[] = []
+      const hasAssignees = assignees && assignees.length > 0
+
+      if (hasAssignees) {
+        assigneesList = assignees.map((a) => {
+          const user = usersList.find((u) => u.id === a)
+          return user
+        })
+      }
 
       await client
         .patch(`workflow-metadata.${documentId}`)
@@ -133,6 +146,14 @@ export function useWorkflowDocuments(schemaTypes: string[]): WorkflowDocuments {
         .set({state: newStateId, orderRank: newOrder})
         .commit()
         .then((res) => {
+          // Send email to assignees
+          if (hasAssignees) {
+            sendGridMailer.sendWorkflowUpdatedEmail({
+              assigneesMeta: assigneesList,
+              state: newState?.title ?? newStateId,
+              documentId,
+            })
+          }
           toast.push({
             title:
               newState.id === document._metadata.state
